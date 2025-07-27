@@ -1,0 +1,3746 @@
+
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเบิกจ่ายเครื่องช่วยฟัง - แผนก ENT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Sarabun', sans-serif;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .mint-gradient {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        }
+        
+        .pink-gradient {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .shake {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 400px;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom icon animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-3deg); }
+            75% { transform: rotate(3deg); }
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+            50% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.8); }
+        }
+        
+        .animate-float {
+            animation: float 2s ease-in-out infinite;
+        }
+        
+        .animate-wiggle {
+            animation: wiggle 1s ease-in-out infinite;
+        }
+        
+        .animate-glow {
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        /* Hover effects for table headers */
+        th:hover i {
+            transform: scale(1.2);
+            transition: transform 0.3s ease;
+        }
+        
+        th i {
+            transition: all 0.3s ease;
+        }
+        
+        .sound-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Sidebar responsive styles */
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 100vw;
+            }
+        }
+        
+        /* Sidebar scrollbar styling */
+        #sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        #sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen mint-gradient">
+    <!-- Header -->
+    <header class="glass-dark text-black p-4 mb-6">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center mb-2">
+                <div></div>
+                <h1 class="text-3xl md:text-4xl font-bold text-center text-black">
+                    <i class="fas fa-deaf mr-3"></i>
+                    ระบบเบิกจ่ายเครื่องช่วยฟัง - แผนก ENT
+                </h1>
+                <div id="connection-status" class="flex items-center text-base text-black">
+                    <div id="status-indicator" class="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+                    <span id="status-text">กำลังเชื่อมต่อ...</span>
+                </div>
+            </div>
+            <p class="text-center text-base opacity-90 text-black">สถาบันบำราศนราดูร</p>
+        </div>
+    </header>
+
+    <!-- Sidebar Toggle Button -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 bg-gradient-to-r from-purple-500 to-purple-600 text-white p-3 rounded-full shadow-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-110">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed left-0 top-0 h-full w-80 bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 text-white transform -translate-x-full transition-transform duration-300 ease-in-out z-40 shadow-2xl">
+        <!-- Sidebar Header -->
+        <div class="p-6 border-b border-purple-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="bg-purple-600 p-3 rounded-full mr-3">
+                        <i class="fas fa-deaf text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold">ระบบเบิกจ่าย</h2>
+                        <p class="text-purple-300 text-sm">เครื่องช่วยฟัง</p>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="text-purple-300 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="p-4 space-y-2">
+            <button onclick="showSection('dispensing')" class="nav-btn w-full flex items-center p-4 rounded-xl hover:bg-purple-700 transition-all duration-300 group">
+                <div class="bg-pink-500 p-3 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-clipboard-list text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="font-semibold text-lg">รายการเบิก</div>
+                    <div class="text-purple-300 text-sm">เพิ่มรายการเบิกใหม่</div>
+                </div>
+            </button>
+
+            <button onclick="showSection('stock')" class="nav-btn w-full flex items-center p-4 rounded-xl hover:bg-purple-700 transition-all duration-300 group">
+                <div class="bg-teal-500 p-3 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-boxes text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="font-semibold text-lg">สต็อก</div>
+                    <div class="text-purple-300 text-sm">จัดการสต็อกสินค้า</div>
+                </div>
+            </button>
+
+            <button onclick="showSection('report')" class="nav-btn w-full flex items-center p-4 rounded-xl hover:bg-purple-700 transition-all duration-300 group">
+                <div class="bg-purple-500 p-3 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-chart-bar text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="font-semibold text-lg">รายงาน</div>
+                    <div class="text-purple-300 text-sm">ดูรายงานสรุป</div>
+                </div>
+            </button>
+
+            <button onclick="showSection('company')" class="nav-btn w-full flex items-center p-4 rounded-xl hover:bg-purple-700 transition-all duration-300 group">
+                <div class="bg-indigo-500 p-3 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-building text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="font-semibold text-lg">เพิ่มชื่อบริษัท</div>
+                    <div class="text-purple-300 text-sm">จัดการข้อมูลบริษัท</div>
+                </div>
+            </button>
+
+            <button onclick="showSection('settings')" class="nav-btn w-full flex items-center p-4 rounded-xl hover:bg-purple-700 transition-all duration-300 group">
+                <div class="bg-orange-500 p-3 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-cog text-xl"></i>
+                </div>
+                <div class="text-left">
+                    <div class="font-semibold text-lg">ตั้งค่า</div>
+                    <div class="text-purple-300 text-sm">ตั้งค่าระบบ</div>
+                </div>
+            </button>
+        </nav>
+
+        <!-- Sidebar Footer -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-purple-700">
+            <div class="text-center text-purple-300 text-sm">
+                <p>สถาบันบำราศนราดูร</p>
+                <p class="text-xs mt-1">แผนก ENT</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 pt-16">
+        <!-- Dispensing Section -->
+        <div id="dispensing-section" class="section">
+            <div class="glass rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-plus-circle mr-3 text-pink-500 animate-bounce"></i>เพิ่มรายการเบิก
+                </h2>
+                
+                <form id="dispensing-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-calendar-alt mr-2 text-blue-500 animate-pulse"></i>วันที่
+                        </label>
+                        <input type="date" id="date" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-id-card mr-2 text-green-500 animate-bounce"></i>HN
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="hn" placeholder="สแกนบาร์โค้ดหรือกรอก" class="flex-1 p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required>
+                            <button type="button" onclick="scanBarcode('hn')" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all text-xl">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-user mr-2 text-purple-500 animate-wiggle"></i>ชื่อ - นามสกุล
+                        </label>
+                        <input type="text" id="fullname" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-deaf mr-2 text-orange-500 animate-float"></i>ทัดหลังหู
+                        </label>
+                        <input type="text" id="behind-ear" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="กรอกข้อมูลทัดหลังหู">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-arrows-alt-h mr-2 text-teal-500 animate-pulse"></i>ด้าน
+                        </label>
+                        <select id="side" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                            <option value="">เลือก</option>
+                            <option value="ซ้าย">ซ้าย</option>
+                            <option value="ขวา">ขวา</option>
+                            <option value="ทั้งสองข้าง">ทั้งสองข้าง</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-headphones mr-2 text-pink-500 animate-bounce"></i>ในช่องหู
+                        </label>
+                        <input type="text" id="in-ear" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="กรอกข้อมูลในช่องหู">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-sort-numeric-up mr-2 text-indigo-500 animate-wiggle"></i>จำนวนข้าง
+                        </label>
+                        <select id="quantity" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required onchange="calculatePrice()">
+                            <option value="">เลือกจำนวนข้าง</option>
+                            <option value="1">1 ข้าง</option>
+                            <option value="2">2 ข้าง</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-shield-alt mr-2 text-red-500 animate-float"></i>สิทธิ์การรักษา
+                        </label>
+                        <select id="treatment-right" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                            <option value="">เลือกสิทธิ์การรักษา</option>
+                            <option value="จ่ายตรง">จ่ายตรง</option>
+                            <option value="รัฐวิสาหกิจ">รัฐวิสาหกิจ</option>
+                            <option value="ประกันสังคม">ประกันสังคม</option>
+                            <option value="บัตรทอง">บัตรทอง</option>
+                            <option value="เงินสด">เงินสด</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-barcode mr-2 text-yellow-500 animate-pulse"></i>SN
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="sn" placeholder="สแกนบาร์โค้ดหรือกรอก" class="flex-1 p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required>
+                            <button type="button" onclick="scanBarcode('sn')" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all text-xl">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-building mr-2 text-cyan-500 animate-bounce"></i>บริษัท
+                        </label>
+                        <select id="company" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" required onchange="calculatePrice()">
+                            <option value="">เลือกบริษัท</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-money-bill-wave mr-2 text-emerald-500 animate-wiggle"></i>ราคา
+                        </label>
+                        <input type="number" id="price" step="0.01" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-gray-100" readonly required>
+                        <p class="text-sm text-gray-500 mt-1">คำนวณอัตโนมัติจากบริษัทและจำนวนข้าง</p>
+                    </div>
+                    
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-sticky-note mr-2 text-amber-500 animate-float"></i>หมายเหตุ
+                        </label>
+                        <textarea id="note" rows="3" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2 lg:col-span-3">
+                        <button type="submit" class="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white p-6 text-xl rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 font-semibold">
+                            <i class="fas fa-save mr-3 text-2xl"></i>บันทึกรายการเบิก
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stock Section -->
+        <div id="stock-section" class="section hidden">
+            <!-- Stock Summary Cards -->
+            <div id="stock-summary-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                <!-- Stock summary cards will be populated here -->
+            </div>
+            
+            <div class="glass rounded-2xl p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-boxes mr-2"></i>จัดการสต็อก
+                    </h2>
+                    <button onclick="showAddStockModal()" class="bg-gradient-to-r from-teal-500 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all duration-300">
+                        <i class="fas fa-plus mr-2"></i>เพิ่มสต็อก
+                    </button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-lg overflow-hidden shadow-lg text-base">
+                        <thead class="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
+                            <tr>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-calendar-alt animate-float text-yellow-200"></i>
+                                        <span>วันที่รับเข้า</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-building animate-wiggle text-blue-200"></i>
+                                        <span>บริษัท</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-cubes animate-spin text-green-200"></i>
+                                        <span>จำนวนทั้งหมด</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-money-bill-wave animate-glow text-yellow-300"></i>
+                                        <span>รวมราคา</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-box animate-bounce text-orange-200"></i>
+                                        <span>คงเหลือ</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-traffic-light animate-pulse text-red-200"></i>
+                                        <span>สถานะ</span>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="stock-table">
+                            <!-- Stock data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Section -->
+        <div id="report-section" class="section hidden">
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Dispensing -->
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl p-6 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm font-medium">รายการเบิกทั้งหมด</p>
+                            <p id="total-dispensing" class="text-3xl font-bold">0</p>
+                            <p class="text-blue-100 text-xs mt-1">รายการ</p>
+                        </div>
+                        <div class="bg-blue-400 bg-opacity-30 rounded-full p-3">
+                            <i class="fas fa-clipboard-list text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total Stock -->
+                <div class="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100 text-sm font-medium">สต็อกคงเหลือ</p>
+                            <p id="total-stock" class="text-3xl font-bold">0</p>
+                            <p class="text-green-100 text-xs mt-1">ชิ้น</p>
+                        </div>
+                        <div class="bg-green-400 bg-opacity-30 rounded-full p-3">
+                            <i class="fas fa-boxes text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Total Value -->
+                <div class="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl p-6 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-purple-100 text-sm font-medium">มูลค่ารวม</p>
+                            <p id="total-value" class="text-3xl font-bold">฿0</p>
+                            <p class="text-purple-100 text-xs mt-1">บาท</p>
+                        </div>
+                        <div class="bg-purple-400 bg-opacity-30 rounded-full p-3">
+                            <i class="fas fa-money-bill-wave text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Low Stock -->
+                <div class="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl p-6 shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-red-100 text-sm font-medium">สต็อกใกล้หมด</p>
+                            <p id="low-stock-count" class="text-3xl font-bold">0</p>
+                            <p class="text-red-100 text-xs mt-1">รายการ</p>
+                        </div>
+                        <div class="bg-red-400 bg-opacity-30 rounded-full p-3">
+                            <i class="fas fa-exclamation-triangle text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Monthly Dispensing Chart -->
+                <div class="bg-white rounded-2xl p-4 shadow-lg">
+                    <h3 class="text-base font-semibold mb-3 text-gray-800">
+                        <i class="fas fa-chart-line mr-2 text-blue-500"></i>การเบิกรายเดือน
+                    </h3>
+                    <div class="h-32">
+                        <canvas id="monthly-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Company Distribution Chart -->
+                <div class="bg-white rounded-2xl p-4 shadow-lg">
+                    <h3 class="text-base font-semibold mb-3 text-gray-800">
+                        <i class="fas fa-chart-pie mr-2 text-purple-500"></i>การกระจายตามบริษัท
+                    </h3>
+                    <div class="h-32">
+                        <canvas id="company-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activities -->
+            <div class="bg-white rounded-2xl p-6 shadow-lg mb-6">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                    <i class="fas fa-clock mr-2 text-green-500"></i>กิจกรรมล่าสุด
+                </h3>
+                <div id="recent-activities" class="space-y-3">
+                    <!-- Recent activities will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Report Filters and Table -->
+            <div class="glass rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-chart-bar mr-2"></i>รายงานสรุป
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">เดือน</label>
+                        <select id="report-month" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <option value="">ทั้งหมด</option>
+                            <option value="1">มกราคม</option>
+                            <option value="2">กุมภาพันธ์</option>
+                            <option value="3">มีนาคม</option>
+                            <option value="4">เมษายน</option>
+                            <option value="5">พฤษภาคม</option>
+                            <option value="6">มิถุนายน</option>
+                            <option value="7">กรกฎาคม</option>
+                            <option value="8">สิงหาคม</option>
+                            <option value="9">กันยายน</option>
+                            <option value="10">ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">ปี</label>
+                        <select id="report-year" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <option value="">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <button onclick="generateReport()" class="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white p-3 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300">
+                            <i class="fas fa-search mr-2"></i>ค้นหา
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-lg overflow-hidden shadow-lg text-sm">
+                        <thead class="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                            <tr>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-calendar-day animate-float text-yellow-200"></i>
+                                        <span>วันที่</span>
+                                    </div>
+                                </th>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-id-card animate-wiggle text-blue-200"></i>
+                                        <span>HN</span>
+                                    </div>
+                                </th>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-user animate-bounce text-green-200"></i>
+                                        <span>ชื่อ-นามสกุล</span>
+                                    </div>
+                                </th>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-building animate-pulse text-pink-200"></i>
+                                        <span>บริษัท</span>
+                                    </div>
+                                </th>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-dollar-sign animate-glow text-yellow-300"></i>
+                                        <span>ราคา</span>
+                                    </div>
+                                </th>
+                                <th class="p-2 text-left text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-cogs animate-spin text-purple-200"></i>
+                                        <span>จัดการ</span>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="report-table">
+                            <!-- Report data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Company Statistics Cards -->
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">
+                    <i class="fas fa-chart-pie mr-2"></i>สถิติแยกตามบริษัท
+                </h2>
+                <div id="company-stats-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                    <!-- Company statistics cards will be populated here -->
+                </div>
+            </div>
+            
+            <!-- Company Report -->
+            <div class="glass rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-building mr-2"></i>รายงานแยกตามบริษัท
+                </h2>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full bg-white rounded-lg overflow-hidden shadow-lg text-sm">
+                        <thead class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+                            <tr>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-building animate-wiggle text-blue-200"></i>
+                                        <span>บริษัท</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-arrow-up animate-float text-red-200"></i>
+                                        <span>ใช้ไป (ชิ้น)</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-coins animate-glow text-yellow-300"></i>
+                                        <span>มูลค่าที่ใช้</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-arrow-down animate-bounce text-green-200"></i>
+                                        <span>คงเหลือ (ชิ้น)</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-wallet animate-pulse text-purple-200"></i>
+                                        <span>มูลค่าคงเหลือ</span>
+                                    </div>
+                                </th>
+                                <th class="p-3 text-left">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-signal animate-spin text-orange-200"></i>
+                                        <span>สถานะ</span>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="company-report-table">
+                            <!-- Company report data will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Company Section -->
+        <div id="company-section" class="section hidden">
+            <div class="glass rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-building mr-2"></i>จัดการบริษัท
+                </h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4">เพิ่มบริษัทใหม่</h3>
+                        <form id="company-form">
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ชื่อบริษัท</label>
+                                <input type="text" id="company-name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ราคาต่อชิ้น (บาท)</label>
+                                <input type="number" id="company-price" step="0.01" min="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                            </div>
+                            <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-3 rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300">
+                                <i class="fas fa-plus mr-2"></i>เพิ่มบริษัท
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="lg:col-span-2">
+                        <h3 class="text-lg font-semibold mb-4">รายการบริษัท</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full bg-white rounded-lg overflow-hidden shadow-lg text-sm">
+                                <thead class="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+                                    <tr>
+                                        <th class="p-3 text-left">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-industry animate-wiggle text-blue-200"></i>
+                                                <span>ชื่อบริษัท</span>
+                                            </div>
+                                        </th>
+                                        <th class="p-3 text-left">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-tag animate-glow text-yellow-300"></i>
+                                                <span>ราคาต่อชิ้น</span>
+                                            </div>
+                                        </th>
+                                        <th class="p-3 text-left">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-tools animate-float text-green-200"></i>
+                                                <span>จัดการ</span>
+                                            </div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody id="company-list">
+                                    <!-- Company list will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Settings Section -->
+        <div id="settings-section" class="section hidden">
+            <div class="glass rounded-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">
+                    <i class="fas fa-cog mr-2"></i>ตั้งค่าการแจ้งเตือน
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Notification Settings -->
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                            <i class="fas fa-bell mr-2 text-orange-500"></i>การแจ้งเตือนสต็อกใกล้หมด
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">จำนวนขั้นต่ำที่ต้องแจ้งเตือน</label>
+                                <input type="number" id="min-stock-threshold" min="1" max="100" value="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <h4 class="font-semibold text-gray-700">ประเภทการแจ้งเตือน:</h4>
+                                
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="sound-notification" checked class="w-5 h-5 text-orange-500 rounded focus:ring-orange-500">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-volume-up text-orange-500 mr-2"></i>
+                                        <span>เสียงพูด (แนะนำ)</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="visual-notification" checked class="w-5 h-5 text-orange-500 rounded focus:ring-orange-500">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-eye text-orange-500 mr-2"></i>
+                                        <span>การแจ้งเตือนแบบภาพ</span>
+                                    </div>
+                                </label>
+                                
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="vibration-notification" class="w-5 h-5 text-orange-500 rounded focus:ring-orange-500">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-mobile-alt text-orange-500 mr-2"></i>
+                                        <span>การสั่น (รองรับเฉพาะมือถือ)</span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-semibold text-gray-700 mb-2">ความเร็วเสียงพูด:</h4>
+                                <input type="range" id="speech-rate" min="0.5" max="2" step="0.1" value="0.9" class="w-full">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>ช้า</span>
+                                    <span>ปกติ</span>
+                                    <span>เร็ว</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-semibold text-gray-700 mb-2">ระดับเสียง:</h4>
+                                <input type="range" id="speech-volume" min="0.1" max="1" step="0.1" value="1" class="w-full">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>เบา</span>
+                                    <span>ปกติ</span>
+                                    <span>ดัง</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                            <button onclick="saveNotificationSettings()" class="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white p-3 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300">
+                                <i class="fas fa-save mr-2"></i>บันทึกการตั้งค่า
+                            </button>
+                            
+                            <button onclick="testNotification()" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300">
+                                <i class="fas fa-play mr-2"></i>ทดสอบการแจ้งเตือน
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Google Sheets Settings -->
+                    <div class="bg-white rounded-xl p-6 shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-800">
+                            <i class="fas fa-table mr-2 text-green-500"></i>การเชื่อมต่อ Google Sheets
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Google Sheets ID</label>
+                                <input type="text" id="sheets-id" value="1TO0QvyD4kEBTTPpgXUHRzosSvZ9ZXvWFEhxozAUwPLA" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ชื่อชีตการเบิก</label>
+                                <input type="text" id="dispensing-sheet" value="Dispensing" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ชื่อชีตสต็อก</label>
+                                <input type="text" id="stock-sheet" value="Stock" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">ชื่อชีตบริษัท</label>
+                                <input type="text" id="company-sheet" value="Companies" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                            <button onclick="testConnection()" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white p-3 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300">
+                                <i class="fas fa-plug mr-2"></i>ทดสอบการเชื่อมต่อ
+                            </button>
+                            
+                            <button onclick="saveGoogleSheetsSettings()" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300">
+                                <i class="fas fa-save mr-2"></i>บันทึกการตั้งค่า
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add Stock Modal -->
+    <div id="add-stock-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass rounded-2xl p-6 m-4 max-w-md w-full">
+            <h3 class="text-xl font-bold mb-4">เพิ่มสต็อก</h3>
+            <form id="add-stock-form">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">วันที่รับเข้า</label>
+                    <input type="date" id="stock-date" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">บริษัท</label>
+                    <select id="stock-company" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                        <option value="">เลือกบริษัท</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">จำนวนทั้งหมด</label>
+                    <input type="number" id="stock-quantity" min="1" class="w-full p-3 border border-gray-300 rounded-lg" required onchange="calculateStockPrice()">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">รวมราคา</label>
+                    <input type="number" id="stock-total-price" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100" readonly>
+                    <p class="text-xs text-gray-500 mt-1">คำนวณอัตโนมัติจากจำนวน × ราคาต่อชิ้น</p>
+                </div>
+                <div class="flex gap-4">
+                    <button type="button" onclick="hideAddStockModal()" class="flex-1 bg-gray-500 text-white p-3 rounded-lg hover:bg-gray-600 transition-colors">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="flex-1 bg-gradient-to-r from-teal-500 to-teal-600 text-white p-3 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all">
+                        เพิ่มสต็อก
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-white bg-opacity-80 hidden items-center justify-center z-50">
+        <div class="glass rounded-2xl p-6 m-4 max-w-2xl w-full max-h-96 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">รายละเอียด</h3>
+                <button onclick="hideDetailModal()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="detail-content">
+                <!-- Detail content will be populated here -->
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button onclick="editRecord()" class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-3 rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all">
+                    <i class="fas fa-edit mr-2"></i>แก้ไข
+                </button>
+                <button onclick="deleteRecord()" class="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white p-3 rounded-lg hover:from-red-600 hover:to-red-700 transition-all">
+                    <i class="fas fa-trash mr-2"></i>ลบ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass rounded-2xl p-6 m-4 max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4">ยืนยันรหัสผ่าน</h3>
+            <input type="password" id="password-input" placeholder="กรอกรหัสผ่าน" class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+            <div class="flex gap-4">
+                <button onclick="hidePasswordModal()" class="flex-1 bg-gray-500 text-white p-3 rounded-lg hover:bg-gray-600 transition-colors">
+                    ยกเลิก
+                </button>
+                <button onclick="verifyPassword()" class="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all">
+                    ยืนยัน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Notification -->
+    <div id="low-stock-notification" class="notification hidden">
+        <div class="glass-dark text-white p-4 rounded-lg shake pulse">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-bold text-red-300 flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2 text-yellow-400"></i>
+                        แจ้งเตือนสต็อกใกล้หมด!
+                    </h4>
+                    <p id="low-stock-message" class="text-sm mt-1"></p>
+                </div>
+                <div class="flex flex-col gap-2 ml-4">
+                    <button onclick="speakLowStockAlert()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                        <i class="fas fa-volume-up mr-1"></i>อ่านซ้ำ
+                    </button>
+                    <button onclick="acknowledgeLowStock()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm">
+                        <i class="fas fa-check mr-1"></i>รับทราบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sound Indicator -->
+    <div id="sound-indicator" class="sound-indicator hidden">
+        <div class="pulse">
+            <i class="fas fa-volume-up text-3xl mb-2"></i>
+            <div>กำลังอ่านข้อความ...</div>
+            <div class="text-sm mt-2">กดที่ใดก็ได้เพื่อหยุด</div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentSection = 'dispensing';
+        let dispensingData = [];
+        let stockData = [];
+        let companyData = [];
+        let currentRecord = null;
+        let pendingAction = null;
+        let lowStockInterval = null;
+        let speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        let lowStockItems = [];
+        let continuousSpeechInterval = null;
+        
+        // Google Sheets Configuration
+        const SPREADSHEET_ID = '1TO0QvyD4kEBTTPpgXUHRzosSvZ9ZXvWFEhxozAUwPLA';
+        const DISPENSING_SHEET = 'Dispensing';
+        const STOCK_SHEET = 'Stock';
+        const COMPANY_SHEET = 'Companies';
+        let notificationSettings = {
+            minStockThreshold: 5,
+            soundEnabled: true,
+            visualEnabled: true,
+            vibrationEnabled: false,
+            speechRate: 0.9,
+            speechVolume: 1.0
+        };
+        let googleSheetsSettings = {
+            spreadsheetId: '1TO0QvyD4kEBTTPpgXUHRzosSvZ9ZXvWFEhxozAUwPLA',
+            dispensingSheet: 'Dispensing',
+            stockSheet: 'Stock',
+            companySheet: 'Companies'
+        };
+        
+        // ใส่ URL ของ Google Apps Script ที่ Deploy แล้วตรงนี้
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwp2PB8oywsrtesn_ZR8NkJstZeXn8MKfe946jjX7XDOmQxIboPMsTs-aPAmz78rk-G/exec';
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            loadSettings();
+            loadData();
+            setCurrentDate();
+            startConnectionMonitoring();
+            initializeSpeechSynthesis();
+            
+            // Set default active menu item
+            const dispensingBtn = document.querySelector('button[onclick="showSection(\'dispensing\')"]');
+            if (dispensingBtn) {
+                dispensingBtn.classList.add('bg-purple-800', 'ring-2', 'ring-purple-400');
+                dispensingBtn.classList.remove('hover:bg-purple-700');
+            }
+            
+            // Handle window resize for sidebar
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    const sidebar = document.getElementById('sidebar');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (!sidebar.classList.contains('-translate-x-full')) {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                        document.getElementById('sidebar-toggle').innerHTML = '<i class="fas fa-bars text-xl"></i>';
+                    }
+                }
+            });
+        });
+
+        // Speech synthesis initialization
+        function initializeSpeechSynthesis() {
+            // Set up click handler to stop speech
+            document.getElementById('sound-indicator').addEventListener('click', stopSpeech);
+            
+            // Check if speech synthesis is supported
+            if (!('speechSynthesis' in window)) {
+                console.warn('Speech synthesis not supported');
+                return;
+            }
+            
+            // Load voices when available
+            speechSynthesis.onvoiceschanged = function() {
+                console.log('Voices loaded:', speechSynthesis.getVoices().length);
+            };
+        }
+
+        // Enhanced JSONP request function
+        function makeJSONPRequest(action, data = null) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.round(100000 * Math.random());
+                
+                // Create callback function
+                window[callbackName] = function(response) {
+                    // Clean up
+                    delete window[callbackName];
+                    if (script && script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    clearTimeout(timeoutId);
+                    resolve(response);
+                };
+                
+                // Create script element
+                const script = document.createElement('script');
+                let url = `${GOOGLE_SCRIPT_URL}?callback=${callbackName}&action=${encodeURIComponent(action)}`;
+                
+                if (data) {
+                    // Split large data into smaller chunks if needed
+                    const dataStr = JSON.stringify(data);
+                    if (dataStr.length > 2000) {
+                        // For large data, use POST-like approach with multiple parameters
+                        const chunks = [];
+                        for (let i = 0; i < dataStr.length; i += 2000) {
+                            chunks.push(dataStr.substring(i, i + 2000));
+                        }
+                        url += '&chunks=' + chunks.length;
+                        chunks.forEach((chunk, index) => {
+                            url += '&chunk' + index + '=' + encodeURIComponent(chunk);
+                        });
+                    } else {
+                        url += '&data=' + encodeURIComponent(dataStr);
+                    }
+                }
+                
+                // Add timestamp to prevent caching
+                url += '&_t=' + Date.now();
+                
+                script.src = url;
+                script.async = true;
+                
+                script.onerror = function() {
+                    delete window[callbackName];
+                    if (script && script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                    clearTimeout(timeoutId);
+                    reject(new Error('JSONP request failed - Network error'));
+                };
+                
+                // Set timeout (increased to 30 seconds)
+                const timeoutId = setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        if (script && script.parentNode) {
+                            script.parentNode.removeChild(script);
+                        }
+                        reject(new Error('Request timeout - Server not responding'));
+                    }
+                }, 30000);
+                
+                document.head.appendChild(script);
+            });
+        }
+
+        // Enhanced text-to-speech functions
+        function speak(text, options = {}) {
+            if (!speechSynthesis || !notificationSettings.soundEnabled) return;
+            
+            // Stop any current speech
+            stopSpeech();
+            
+            // Create new utterance
+            currentUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Set voice properties from settings
+            currentUtterance.lang = options.lang || 'th-TH';
+            currentUtterance.rate = options.rate || notificationSettings.speechRate;
+            currentUtterance.pitch = options.pitch || 1;
+            currentUtterance.volume = options.volume || notificationSettings.speechVolume;
+            
+            // Try to find Thai voice
+            const voices = speechSynthesis.getVoices();
+            const thaiVoice = voices.find(voice => 
+                voice.lang.includes('th') || 
+                voice.name.includes('Thai') ||
+                voice.name.includes('ไทย')
+            );
+            
+            if (thaiVoice) {
+                currentUtterance.voice = thaiVoice;
+            }
+            
+            // Show sound indicator
+            if (notificationSettings.visualEnabled) {
+                showSoundIndicator();
+            }
+            
+            // Set up event handlers
+            currentUtterance.onend = function() {
+                hideSoundIndicator();
+                currentUtterance = null;
+            };
+            
+            currentUtterance.onerror = function(event) {
+                console.error('Speech synthesis error:', event);
+                hideSoundIndicator();
+                currentUtterance = null;
+            };
+            
+            // Start speaking
+            speechSynthesis.speak(currentUtterance);
+        }
+
+        function stopSpeech() {
+            if (speechSynthesis && speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+            if (continuousSpeechInterval) {
+                clearInterval(continuousSpeechInterval);
+                continuousSpeechInterval = null;
+            }
+            hideSoundIndicator();
+            currentUtterance = null;
+        }
+
+        function startContinuousSpeech(items) {
+            if (!notificationSettings.soundEnabled) return;
+            
+            let message = 'แจ้งเตือนสต็อกใกล้หมด ';
+            items.forEach((item, index) => {
+                if (index > 0) message += ' และ ';
+                message += `${item.company} เหลือ ${item.remaining} ชิ้น`;
+            });
+            message += ' กรุณาเติมสต็อกด่วน';
+            
+            // Speak immediately
+            speak(message);
+            
+            // Set up continuous speech every 10 seconds
+            continuousSpeechInterval = setInterval(() => {
+                if (document.getElementById('low-stock-notification').classList.contains('hidden')) {
+                    clearInterval(continuousSpeechInterval);
+                    continuousSpeechInterval = null;
+                    return;
+                }
+                speak(message);
+            }, 10000);
+        }
+
+        function triggerVibration() {
+            if (notificationSettings.vibrationEnabled && 'vibrate' in navigator) {
+                // Vibrate pattern: vibrate for 200ms, pause 100ms, repeat 3 times
+                navigator.vibrate([200, 100, 200, 100, 200]);
+            }
+        }
+
+        function showSoundIndicator() {
+            document.getElementById('sound-indicator').classList.remove('hidden');
+        }
+
+        function hideSoundIndicator() {
+            document.getElementById('sound-indicator').classList.add('hidden');
+        }
+
+        function speakLowStockAlert() {
+            if (lowStockItems.length === 0) return;
+            
+            let message = 'แจ้งเตือนสต็อกใกล้หมด ';
+            
+            lowStockItems.forEach((item, index) => {
+                if (index > 0) message += ' และ ';
+                message += `${item.company} เหลือ ${item.remaining} ชิ้น`;
+            });
+            
+            message += ' กรุณาเติมสต็อกด่วน';
+            
+            speak(message, { rate: 0.8, pitch: 1.1 });
+        }
+
+        // Connection status management
+        function updateConnectionStatus(isConnected, message = '') {
+            const indicator = document.getElementById('status-indicator');
+            const text = document.getElementById('status-text');
+            
+            if (isConnected) {
+                indicator.className = 'w-3 h-3 rounded-full bg-green-500 mr-2';
+                text.textContent = 'เชื่อมต่อแล้ว';
+            } else {
+                indicator.className = 'w-3 h-3 rounded-full bg-red-500 mr-2';
+                text.textContent = message || 'ไม่ได้เชื่อมต่อ';
+            }
+        }
+
+        function startConnectionMonitoring() {
+            // Initial connection test
+            testInitialConnection();
+            
+            // Check connection every 60 seconds
+            setInterval(async () => {
+                if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwp2PB8oywsrtesn_ZR8NkJstZeXn8MKfe946jjX7XDOmQxIboPMsTs-aPAmz78rk-G/exec') {
+                    try {
+                        const response = await makeJSONPRequest('ping');
+                        
+                        if (response && response.success) {
+                            updateConnectionStatus(true);
+                            syncLocalData(); // Sync any pending local data
+                        } else {
+                            updateConnectionStatus(false, 'เซิร์ฟเวอร์ตอบสนองผิดปกติ');
+                        }
+                    } catch (error) {
+                        console.error('Connection check error:', error);
+                        updateConnectionStatus(false, 'เชื่อมต่อไม่ได้');
+                    }
+                } else {
+                    updateConnectionStatus(false, 'ยังไม่ได้ตั้งค่า URL');
+                }
+            }, 60000);
+        }
+        
+        async function testInitialConnection() {
+            try {
+                updateConnectionStatus(false, 'กำลังเชื่อมต่อ...');
+                const response = await makeJSONPRequest('ping');
+                
+                if (response && response.success) {
+                    updateConnectionStatus(true);
+                } else {
+                    updateConnectionStatus(false, 'เซิร์ฟเวอร์ไม่พร้อม');
+                }
+            } catch (error) {
+                console.error('Initial connection test failed:', error);
+                updateConnectionStatus(false, 'เชื่อมต่อไม่ได้');
+            }
+        }
+
+        // Sync local backup data when connection is restored
+        async function syncLocalData() {
+            const localData = JSON.parse(localStorage.getItem('dispensingBackup') || '[]');
+            
+            if (localData.length > 0) {
+                try {
+                    for (const item of localData) {
+                        await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                action: 'add',
+                                data: item
+                            })
+                        });
+                    }
+                    
+                    localStorage.removeItem('dispensingBackup');
+                    showNotification(`ซิงค์ข้อมูล ${localData.length} รายการเรียบร้อย`, 'success');
+                } catch (error) {
+                    console.error('Sync error:', error);
+                }
+            }
+        }
+
+        function initializeApp() {
+            // Set up form handlers
+            document.getElementById('dispensing-form').addEventListener('submit', handleDispensingSubmit);
+            document.getElementById('company-form').addEventListener('submit', handleCompanySubmit);
+            document.getElementById('add-stock-form').addEventListener('submit', handleStockSubmit);
+            
+            // Set up filter handlers
+            document.getElementById('report-month').addEventListener('change', generateReport);
+            document.getElementById('report-year').addEventListener('change', generateReport);
+            
+            updateCompanySelects();
+            updateCompanyList();
+        }
+
+        function setCurrentDate() {
+            const today = new Date();
+            const dateString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+            document.getElementById('date').value = dateString;
+            document.getElementById('stock-date').value = dateString;
+        }
+
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+        }
+
+        function parseThaiDate(dateStr) {
+            // Handle both formats: "YYYY-MM-DD" and "12/6/2568"
+            if (dateStr.includes('-')) {
+                return new Date(dateStr);
+            } else if (dateStr.includes('/')) {
+                const parts = dateStr.split('/');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+                    let year = parseInt(parts[2]);
+                    
+                    // If year is already in Buddhist format (> 2500), convert to Christian year
+                    if (year > 2500) {
+                        year = year - 543;
+                    }
+                    
+                    return new Date(year, month, day);
+                }
+            }
+            return new Date(dateStr);
+        }
+
+        function formatThaiDate(date) {
+            // Format date as Thai format "12 มิถุนายน 2568"
+            const thaiMonths = [
+                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+            ];
+            
+            const day = date.getDate();
+            const month = thaiMonths[date.getMonth()];
+            const year = date.getFullYear() + 543; // Buddhist year
+            
+            return `${day} ${month} ${year}`;
+        }
+
+        function populateReportOptions() {
+            const monthSelect = document.getElementById('report-month');
+            const yearSelect = document.getElementById('report-year');
+            
+            // Clear existing options except the first one
+            while (monthSelect.children.length > 1) {
+                monthSelect.removeChild(monthSelect.lastChild);
+            }
+            while (yearSelect.children.length > 1) {
+                yearSelect.removeChild(yearSelect.lastChild);
+            }
+            
+            // Get unique months and years from dispensing data
+            const months = new Set();
+            const years = new Set();
+            
+            dispensingData.forEach(item => {
+                const date = parseThaiDate(item.date);
+                if (date && !isNaN(date)) {
+                    months.add(date.getMonth() + 1);
+                    years.add(date.getFullYear()); // Christian year for internal use
+                }
+            });
+            
+            // Populate month options
+            const monthNames = [
+                '', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+            ];
+            
+            Array.from(months).sort((a, b) => a - b).forEach(month => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = monthNames[month];
+                monthSelect.appendChild(option);
+            });
+            
+            // Populate year options
+            Array.from(years).sort((a, b) => b - a).forEach(year => {
+                const option = document.createElement('option');
+                option.value = year; // Store as Christian year for comparison
+                option.textContent = year + 543; // Display as Buddhist year
+                yearSelect.appendChild(option);
+            });
+        }
+
+        // Sidebar management
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            
+            if (sidebar.classList.contains('-translate-x-full')) {
+                // Show sidebar
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+                toggleBtn.innerHTML = '<i class="fas fa-times text-xl"></i>';
+            } else {
+                // Hide sidebar
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+                toggleBtn.innerHTML = '<i class="fas fa-bars text-xl"></i>';
+            }
+        }
+
+        // Section management
+        function showSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            
+            // Show selected section
+            document.getElementById(section + '-section').classList.remove('hidden');
+            
+            // Update navigation - remove active state from all buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-purple-800', 'ring-2', 'ring-purple-400');
+                btn.classList.add('hover:bg-purple-700');
+            });
+            
+            // Add active state to clicked button
+            const activeBtn = event.target.closest('.nav-btn');
+            if (activeBtn) {
+                activeBtn.classList.add('bg-purple-800', 'ring-2', 'ring-purple-400');
+                activeBtn.classList.remove('hover:bg-purple-700');
+            }
+            
+            currentSection = section;
+            
+            // Close sidebar on mobile after selection
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
+            
+            // Load section-specific data
+            if (section === 'report') {
+                generateReport();
+                updateSummaryStatistics();
+                updateSummaryCharts();
+                updateRecentActivities();
+            } else if (section === 'stock') {
+                updateStockTable();
+                updateStockSummaryCards();
+            }
+        }
+
+        // Data loading with JSONP
+        async function loadData() {
+            try {
+                Swal.fire({
+                    title: 'กำลังโหลดข้อมูล...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                const data = await makeJSONPRequest('getAll', {
+                    spreadsheetId: SPREADSHEET_ID,
+                    dispensingSheet: DISPENSING_SHEET,
+                    stockSheet: STOCK_SHEET,
+                    companySheet: COMPANY_SHEET
+                });
+                
+                if (data && data.success) {
+                    dispensingData = data.data.dispensing || [];
+                    stockData = data.data.stock || [];
+                    companyData = data.data.companies || [];
+                    
+                    updateCompanySelects();
+                    updateCompanyList();
+                    updateStockTable();
+                    populateReportOptions();
+                    generateReport();
+                    updateSummaryStatistics();
+                    updateSummaryCharts();
+                    checkLowStock();
+                    
+                    updateConnectionStatus(true);
+                    Swal.close();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'โหลดข้อมูลสำเร็จ!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(data ? data.error : 'No response from server');
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                updateConnectionStatus(false, 'เชื่อมต่อไม่ได้');
+                Swal.close();
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถเชื่อมต่อได้',
+                    text: 'กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต',
+                    confirmButtonText: 'ตกลง'
+                });
+                
+                initializeEmptyData();
+            }
+        }
+
+        // Form handlers with SweetAlert
+        async function handleDispensingSubmit(e) {
+            e.preventDefault();
+            
+            const formData = {
+                date: document.getElementById('date').value,
+                hn: document.getElementById('hn').value,
+                fullname: document.getElementById('fullname').value,
+                behindEar: document.getElementById('behind-ear').value,
+                side: document.getElementById('side').value,
+                inEar: document.getElementById('in-ear').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                treatmentRight: document.getElementById('treatment-right').value,
+                sn: document.getElementById('sn').value,
+                company: document.getElementById('company').value,
+                price: parseFloat(document.getElementById('price').value),
+                note: document.getElementById('note').value
+            };
+
+            try {
+                Swal.fire({
+                    title: 'กำลังบันทึกข้อมูล...',
+                    text: 'กรุณารอสักครู่',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                const result = await makeJSONPRequest('addDispensing', {
+                    ...formData,
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: DISPENSING_SHEET
+                });
+                
+                if (result.success) {
+                    dispensingData.push({...formData, id: result.id || Date.now()});
+                    updateStock(formData.company, formData.quantity);
+                    document.getElementById('dispensing-form').reset();
+                    setCurrentDate();
+                    populateReportOptions();
+                    updateSummaryStatistics();
+                    updateSummaryCharts();
+                    updateRecentActivities();
+                    checkLowStock();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกสำเร็จ!',
+                        text: 'รายการเบิกถูกบันทึกเรียบร้อยแล้ว',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error saving data:', error);
+                
+                // Save to local storage as backup
+                const localData = JSON.parse(localStorage.getItem('dispensingBackup') || '[]');
+                localData.push({...formData, id: Date.now(), timestamp: new Date().toISOString()});
+                localStorage.setItem('dispensingBackup', JSON.stringify(localData));
+                
+                dispensingData.push({...formData, id: Date.now()});
+                updateStock(formData.company, formData.quantity);
+                document.getElementById('dispensing-form').reset();
+                setCurrentDate();
+                updateSummaryStatistics();
+                updateSummaryCharts();
+                updateRecentActivities();
+                checkLowStock();
+                
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'บันทึกในเครื่องสำเร็จ',
+                    text: 'ข้อมูลจะถูกส่งไป Google Sheets เมื่อเชื่อมต่อได้',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        async function handleCompanySubmit(e) {
+            e.preventDefault();
+            
+            const companyName = document.getElementById('company-name').value.trim();
+            const companyPrice = parseFloat(document.getElementById('company-price').value);
+            
+            if (!companyName || !companyPrice) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อมูลไม่ครบ',
+                    text: 'กรุณากรอกชื่อบริษัทและราคาต่อชิ้น',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            if (companyData.some(company => company.name === companyName)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'บริษัทซ้ำ',
+                    text: 'บริษัทนี้มีอยู่ในระบบแล้ว',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            try {
+                Swal.fire({
+                    title: 'กำลังเพิ่มบริษัท...',
+                    text: 'กรุณารอสักครู่',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                const newCompany = {
+                    name: companyName,
+                    pricePerUnit: companyPrice
+                };
+                
+                const result = await makeJSONPRequest('addCompany', { 
+                    ...newCompany,
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: COMPANY_SHEET
+                });
+                
+                if (result.success) {
+                    companyData.push(newCompany);
+                    updateCompanySelects();
+                    updateCompanyList();
+                    document.getElementById('company-name').value = '';
+                    document.getElementById('company-price').value = '';
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เพิ่มบริษัทสำเร็จ!',
+                        text: `เพิ่ม "${companyName}" เรียบร้อยแล้ว`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error adding company:', error);
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถเพิ่มบริษัทได้: ' + error.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        }
+
+        async function handleStockSubmit(e) {
+            e.preventDefault();
+            
+            const stockItem = {
+                date: document.getElementById('stock-date').value,
+                company: document.getElementById('stock-company').value,
+                totalQuantity: parseInt(document.getElementById('stock-quantity').value),
+                totalPrice: parseFloat(document.getElementById('stock-total-price').value),
+                remaining: parseInt(document.getElementById('stock-quantity').value)
+            };
+            
+            try {
+                Swal.fire({
+                    title: 'กำลังเพิ่มสต็อก...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                const result = await makeJSONPRequest('addStock', {
+                    ...stockItem,
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: STOCK_SHEET
+                });
+                
+                if (result.success) {
+                    stockData.push({...stockItem, id: result.id || Date.now()});
+                    updateStockTable();
+                    hideAddStockModal();
+                    document.getElementById('add-stock-form').reset();
+                    updateSummaryStatistics();
+                    updateSummaryCharts();
+                    checkLowStock();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เพิ่มสต็อกสำเร็จ!',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error adding stock:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถเพิ่มสต็อกได้: ' + error.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        }
+
+        // Stock management
+        function updateStock(company, quantity) {
+            // Find stock items for this company and deduct quantity (FIFO - First In, First Out)
+            const companyStock = stockData
+                .filter(item => item.company === company && item.remaining > 0)
+                .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date (oldest first)
+            
+            let remainingToDeduct = quantity;
+            
+            for (let stock of companyStock) {
+                if (remainingToDeduct <= 0) break;
+                
+                const deductAmount = Math.min(stock.remaining, remainingToDeduct);
+                stock.remaining -= deductAmount;
+                remainingToDeduct -= deductAmount;
+                
+                // Update stock in Google Sheets if needed
+                updateStockInSheet(stock);
+            }
+            
+            updateStockTable();
+            
+            // Show warning if not enough stock
+            if (remainingToDeduct > 0) {
+                showNotification(`เตือน: สต็อก ${company} ไม่เพียงพอ ขาด ${remainingToDeduct} ชิ้น`, 'error');
+            }
+        }
+        
+        async function updateStockInSheet(stockItem) {
+            try {
+                await makeJSONPRequest('updateStock', {
+                    id: stockItem.id,
+                    remaining: stockItem.remaining,
+                    spreadsheetId: SPREADSHEET_ID,
+                    sheetName: STOCK_SHEET
+                });
+            } catch (error) {
+                console.error('Error updating stock in sheet:', error);
+            }
+        }
+
+        function updateStockFromDispensing() {
+            // Calculate stock usage from dispensing data
+            const stockUsage = {};
+            
+            dispensingData.forEach(item => {
+                if (!stockUsage[item.company]) {
+                    stockUsage[item.company] = 0;
+                }
+                stockUsage[item.company] += item.quantity;
+            });
+            
+            // Update remaining stock
+            stockData.forEach(stock => {
+                const used = stockUsage[stock.company] || 0;
+                stock.remaining = Math.max(0, stock.totalQuantity - used);
+            });
+        }
+
+        function updateStockTable() {
+            const tbody = document.getElementById('stock-table');
+            tbody.innerHTML = '';
+            
+            stockData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const status = item.remaining <= notificationSettings.minStockThreshold ? 
+                    '<span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">ใกล้หมด</span>' :
+                    '<span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">ปกติ</span>';
+                
+                row.innerHTML = `
+                    <td class="p-3 text-sm">${formatDate(item.date)}</td>
+                    <td class="p-3 text-sm">${item.company}</td>
+                    <td class="p-3 text-sm">${item.totalQuantity.toLocaleString()}</td>
+                    <td class="p-3 text-sm">฿${item.totalPrice.toLocaleString()}</td>
+                    <td class="p-3 text-sm font-semibold ${item.remaining <= notificationSettings.minStockThreshold ? 'text-red-600' : 'text-green-600'}">${item.remaining.toLocaleString()}</td>
+                    <td class="p-3 text-sm">${status}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            // Update stock summary cards
+            updateStockSummaryCards();
+        }
+
+        function updateStockSummaryCards() {
+            const container = document.getElementById('stock-summary-cards');
+            container.innerHTML = '';
+            
+            // Calculate stock summary by company
+            const companyStock = {};
+            stockData.forEach(stock => {
+                if (!companyStock[stock.company]) {
+                    companyStock[stock.company] = {
+                        totalStock: 0,
+                        remaining: 0,
+                        used: 0,
+                        totalValue: 0,
+                        remainingValue: 0
+                    };
+                }
+                companyStock[stock.company].totalStock += stock.totalQuantity;
+                companyStock[stock.company].remaining += stock.remaining;
+                companyStock[stock.company].used += (stock.totalQuantity - stock.remaining);
+                companyStock[stock.company].totalValue += stock.totalPrice;
+                
+                // Calculate remaining value
+                const company = companyData.find(c => (typeof c === 'string' ? c : c.name) === stock.company);
+                const pricePerUnit = company && typeof company === 'object' ? company.pricePerUnit : 0;
+                companyStock[stock.company].remainingValue += stock.remaining * pricePerUnit;
+            });
+            
+            const colors = [
+                'from-blue-500 to-blue-600',
+                'from-green-500 to-green-600',
+                'from-purple-500 to-purple-600',
+                'from-pink-500 to-pink-600',
+                'from-indigo-500 to-indigo-600',
+                'from-yellow-500 to-yellow-600',
+                'from-red-500 to-red-600',
+                'from-teal-500 to-teal-600'
+            ];
+            
+            let colorIndex = 0;
+            
+            Object.keys(companyStock).forEach(companyName => {
+                const stock = companyStock[companyName];
+                const color = colors[colorIndex % colors.length];
+                const isLowStock = stock.remaining <= notificationSettings.minStockThreshold && stock.remaining > 0;
+                colorIndex++;
+                
+                const card = document.createElement('div');
+                card.className = `bg-gradient-to-br ${color} text-white rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all duration-300 ${isLowStock ? 'ring-4 ring-red-400 animate-pulse' : ''}`;
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="font-bold text-lg truncate">${companyName}</h4>
+                        ${isLowStock ? '<i class="fas fa-exclamation-triangle text-yellow-300 text-xl"></i>' : '<i class="fas fa-boxes text-white opacity-70"></i>'}
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-90">สต็อกทั้งหมด:</span>
+                            <span class="font-semibold">${stock.totalStock.toLocaleString()} ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">ใช้ไปแล้ว:</span>
+                            <span class="font-semibold">${stock.used.toLocaleString()} ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">คงเหลือ:</span>
+                            <span class="font-semibold ${isLowStock ? 'text-yellow-300' : ''}">${stock.remaining.toLocaleString()} ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">มูลค่าคงเหลือ:</span>
+                            <span class="font-semibold">฿${stock.remainingValue.toLocaleString()}</span>
+                        </div>
+                        <div class="mt-3 bg-white bg-opacity-20 rounded-full h-2">
+                            <div class="bg-white rounded-full h-2 transition-all duration-300" style="width: ${stock.totalStock > 0 ? (stock.remaining / stock.totalStock * 100) : 0}%"></div>
+                        </div>
+                        <div class="text-xs opacity-75 text-center">
+                            ${stock.totalStock > 0 ? Math.round(stock.remaining / stock.totalStock * 100) : 0}% คงเหลือ
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Add empty state if no stock data
+            if (Object.keys(companyStock).length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-boxes text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">ยังไม่มีข้อมูลสต็อก</p>
+                        <button onclick="showAddStockModal()" class="mt-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all duration-300">
+                            <i class="fas fa-plus mr-2"></i>เพิ่มสต็อกแรก
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Enhanced low stock management - using company report data
+        function checkLowStock() {
+            // Calculate remaining stock by company from company report data
+            const companyStock = {};
+            stockData.forEach(stock => {
+                if (!companyStock[stock.company]) {
+                    companyStock[stock.company] = {
+                        remaining: 0,
+                        company: stock.company
+                    };
+                }
+                companyStock[stock.company].remaining += stock.remaining;
+            });
+            
+            // Filter companies with low stock based on total remaining per company
+            lowStockItems = Object.values(companyStock).filter(item => 
+                item.remaining <= notificationSettings.minStockThreshold && item.remaining > 0
+            );
+            
+            if (lowStockItems.length > 0) {
+                if (notificationSettings.visualEnabled) {
+                    showLowStockNotification(lowStockItems);
+                }
+                
+                if (notificationSettings.soundEnabled) {
+                    setTimeout(() => {
+                        startContinuousSpeech(lowStockItems);
+                    }, 1000);
+                }
+                
+                if (notificationSettings.vibrationEnabled) {
+                    triggerVibration();
+                }
+            }
+        }
+
+        function showLowStockNotification(items) {
+            if (!notificationSettings.visualEnabled) return;
+            
+            const notification = document.getElementById('low-stock-notification');
+            const message = document.getElementById('low-stock-message');
+            
+            const itemList = items.map(item => `${item.company}: เหลือ ${item.remaining} ชิ้น`).join(', ');
+            message.textContent = itemList;
+            
+            notification.classList.remove('hidden');
+            notification.classList.add('fade-in');
+            
+            // Start shaking animation interval
+            if (lowStockInterval) clearInterval(lowStockInterval);
+            lowStockInterval = setInterval(() => {
+                notification.querySelector('.glass-dark').classList.toggle('shake');
+            }, 2000);
+        }
+
+        function acknowledgeLowStock() {
+            const notification = document.getElementById('low-stock-notification');
+            notification.classList.add('hidden');
+            
+            if (lowStockInterval) {
+                clearInterval(lowStockInterval);
+                lowStockInterval = null;
+            }
+            
+            // Stop any ongoing speech
+            stopSpeech();
+        }
+
+        function speakLowStockAlert() {
+            if (lowStockItems.length === 0) return;
+            
+            let message = 'แจ้งเตือนสต็อกใกล้หมด ';
+            
+            lowStockItems.forEach((item, index) => {
+                if (index > 0) message += ' และ ';
+                message += `${item.company} เหลือ ${item.remaining} ชิ้น`;
+            });
+            
+            message += ' กรุณาเติมสต็อกด่วน';
+            
+            speak(message, { rate: notificationSettings.speechRate, volume: notificationSettings.speechVolume });
+        }
+
+        // Report generation
+        function generateReport() {
+            const month = document.getElementById('report-month').value;
+            const year = document.getElementById('report-year').value;
+            
+            let filteredData = [...dispensingData];
+            
+            // If no month/year selected, show current month/year only
+            if (!month && !year) {
+                const currentDate = new Date();
+                const currentMonth = currentDate.getMonth() + 1;
+                const currentYear = currentDate.getFullYear();
+                
+                filteredData = dispensingData.filter(item => {
+                    const itemDate = parseThaiDate(item.date);
+                    if (!itemDate || isNaN(itemDate)) return false;
+                    
+                    const itemMonth = itemDate.getMonth() + 1;
+                    const itemYear = itemDate.getFullYear();
+                    
+                    return itemMonth === currentMonth && itemYear === currentYear;
+                });
+            } else if (month || year) {
+                filteredData = dispensingData.filter(item => {
+                    const itemDate = parseThaiDate(item.date);
+                    if (!itemDate || isNaN(itemDate)) return false;
+                    
+                    const itemMonth = itemDate.getMonth() + 1;
+                    const itemYear = itemDate.getFullYear();
+                    
+                    return (!month || itemMonth == month) && (!year || itemYear == year);
+                });
+            }
+            
+            updateReportTable(filteredData);
+            updateCompanyReport(filteredData);
+        }
+
+        function updateReportTable(data) {
+            const tbody = document.getElementById('report-table');
+            tbody.innerHTML = '';
+            
+            // Sort data by date (newest first)
+            const sortedData = [...data].sort((a, b) => {
+                const dateA = parseThaiDate(a.date);
+                const dateB = parseThaiDate(b.date);
+                return dateB - dateA; // Newest first
+            });
+            
+            sortedData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                // Find original index in dispensingData for detail view
+                const originalIndex = dispensingData.findIndex(record => 
+                    record.date === item.date && 
+                    record.hn === item.hn && 
+                    record.sn === item.sn
+                );
+                
+                row.innerHTML = `
+                    <td class="p-2 text-xs">${formatDate(item.date)}</td>
+                    <td class="p-2 text-xs">${item.hn}</td>
+                    <td class="p-2 text-xs">${item.fullname}</td>
+                    <td class="p-2 text-xs">${item.company}</td>
+                    <td class="p-2 text-xs">฿${item.price.toLocaleString()}</td>
+                    <td class="p-2 text-xs">
+                        <button onclick="showRecordDetail(${originalIndex})" class="text-blue-600 hover:text-blue-800 transition-colors">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateCompanyReport(filteredData) {
+            const tbody = document.getElementById('company-report-table');
+            tbody.innerHTML = '';
+            
+            // Calculate usage by company from filtered data
+            const companyUsage = {};
+            filteredData.forEach(item => {
+                if (!companyUsage[item.company]) {
+                    companyUsage[item.company] = {
+                        used: 0,
+                        totalValue: 0
+                    };
+                }
+                companyUsage[item.company].used += item.quantity;
+                companyUsage[item.company].totalValue += item.price;
+            });
+            
+            // Calculate remaining stock by company
+            const companyStock = {};
+            stockData.forEach(stock => {
+                if (!companyStock[stock.company]) {
+                    companyStock[stock.company] = {
+                        remaining: 0,
+                        remainingValue: 0
+                    };
+                }
+                companyStock[stock.company].remaining += stock.remaining;
+                
+                // Calculate remaining value
+                const company = companyData.find(c => (typeof c === 'string' ? c : c.name) === stock.company);
+                const pricePerUnit = company && typeof company === 'object' ? company.pricePerUnit : 0;
+                companyStock[stock.company].remainingValue += stock.remaining * pricePerUnit;
+            });
+            
+            // Get all unique companies
+            const allCompanies = new Set([
+                ...Object.keys(companyUsage),
+                ...Object.keys(companyStock)
+            ]);
+            
+            allCompanies.forEach(companyName => {
+                const usage = companyUsage[companyName] || { used: 0, totalValue: 0 };
+                const stock = companyStock[companyName] || { remaining: 0, remainingValue: 0 };
+                
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const isLowStock = stock.remaining <= notificationSettings.minStockThreshold && stock.remaining > 0;
+                const statusClass = isLowStock ? 'text-red-600' : 'text-green-600';
+                const statusText = isLowStock ? 'ใกล้หมด' : 'ปกติ';
+                const statusBg = isLowStock ? 'bg-red-100' : 'bg-green-100';
+                
+                row.innerHTML = `
+                    <td class="p-3 font-semibold">${companyName}</td>
+                    <td class="p-3">${usage.used.toLocaleString()}</td>
+                    <td class="p-3">฿${usage.totalValue.toLocaleString()}</td>
+                    <td class="p-3 ${statusClass} font-semibold">${stock.remaining.toLocaleString()}</td>
+                    <td class="p-3">฿${stock.remainingValue.toLocaleString()}</td>
+                    <td class="p-3">
+                        <span class="${statusBg} ${statusClass} px-2 py-1 rounded-full text-xs font-semibold">
+                            ${statusText}
+                        </span>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        // Record management
+        function showRecordDetail(index) {
+            currentRecord = dispensingData[index];
+            
+            const content = document.getElementById('detail-content');
+            content.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><strong>วันที่:</strong> ${formatDate(currentRecord.date)}</div>
+                    <div><strong>HN:</strong> ${currentRecord.hn}</div>
+                    <div><strong>ชื่อ-นามสกุล:</strong> ${currentRecord.fullname}</div>
+                    <div><strong>ทัดหลังหู:</strong> ${currentRecord.behindEar}</div>
+                    <div><strong>ด้าน:</strong> ${currentRecord.side}</div>
+                    <div><strong>ในช่องหู:</strong> ${currentRecord.inEar}</div>
+                    <div><strong>จำนวนข้าง:</strong> ${currentRecord.quantity}</div>
+                    <div><strong>สิทธิ์การรักษา:</strong> ${currentRecord.treatmentRight}</div>
+                    <div><strong>SN:</strong> ${currentRecord.sn}</div>
+                    <div><strong>บริษัท:</strong> ${currentRecord.company}</div>
+                    <div><strong>ราคา:</strong> ฿${currentRecord.price.toLocaleString()}</div>
+                    <div class="md:col-span-2"><strong>หมายเหตุ:</strong> ${currentRecord.note || '-'}</div>
+                </div>
+            `;
+            
+            showDetailModal();
+        }
+
+        function editRecord() {
+            pendingAction = 'edit';
+            showPasswordModal();
+        }
+
+        function deleteRecord() {
+            pendingAction = 'delete';
+            showPasswordModal();
+        }
+
+        function verifyPassword() {
+            const password = document.getElementById('password-input').value;
+            
+            if (password === '1234') {
+                hidePasswordModal();
+                
+                if (pendingAction === 'edit') {
+                    // Populate form with current record data
+                    populateFormWithRecord(currentRecord);
+                    showSection('dispensing');
+                    hideDetailModal();
+                } else if (pendingAction === 'delete') {
+                    // Delete record
+                    const index = dispensingData.indexOf(currentRecord);
+                    if (index > -1) {
+                        dispensingData.splice(index, 1);
+                        generateReport();
+                        hideDetailModal();
+                        showNotification('ลบรายการเรียบร้อยแล้ว', 'success');
+                    }
+                }
+                
+                pendingAction = null;
+                currentRecord = null;
+            } else {
+                showNotification('รหัสผ่านไม่ถูกต้อง', 'error');
+            }
+            
+            document.getElementById('password-input').value = '';
+        }
+
+        function populateFormWithRecord(record) {
+            document.getElementById('date').value = record.date;
+            document.getElementById('hn').value = record.hn;
+            document.getElementById('fullname').value = record.fullname;
+            document.getElementById('behind-ear').value = record.behindEar;
+            document.getElementById('side').value = record.side;
+            document.getElementById('in-ear').value = record.inEar;
+            document.getElementById('quantity').value = record.quantity;
+            document.getElementById('treatment-right').value = record.treatmentRight;
+            document.getElementById('sn').value = record.sn;
+            document.getElementById('company').value = record.company;
+            document.getElementById('price').value = record.price;
+            document.getElementById('note').value = record.note;
+        }
+
+        // Modal management
+        function showAddStockModal() {
+            document.getElementById('add-stock-modal').classList.remove('hidden');
+            document.getElementById('add-stock-modal').classList.add('flex');
+        }
+
+        function hideAddStockModal() {
+            document.getElementById('add-stock-modal').classList.add('hidden');
+            document.getElementById('add-stock-modal').classList.remove('flex');
+        }
+
+        function showDetailModal() {
+            document.getElementById('detail-modal').classList.remove('hidden');
+            document.getElementById('detail-modal').classList.add('flex');
+        }
+
+        function hideDetailModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+            document.getElementById('detail-modal').classList.remove('flex');
+        }
+
+        function showPasswordModal() {
+            document.getElementById('password-modal').classList.remove('hidden');
+            document.getElementById('password-modal').classList.add('flex');
+        }
+
+        function hidePasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+            document.getElementById('password-modal').classList.remove('flex');
+        }
+
+        // Price calculation functions
+        function calculatePrice() {
+            const companySelect = document.getElementById('company');
+            const quantitySelect = document.getElementById('quantity');
+            const priceInput = document.getElementById('price');
+            
+            const selectedCompany = companySelect.value;
+            const quantity = parseInt(quantitySelect.value) || 0;
+            
+            if (selectedCompany && quantity > 0) {
+                const company = companyData.find(c => c.name === selectedCompany);
+                if (company && company.pricePerUnit) {
+                    const totalPrice = quantity * company.pricePerUnit;
+                    priceInput.value = totalPrice.toFixed(2);
+                } else {
+                    priceInput.value = '';
+                }
+            } else {
+                priceInput.value = '';
+            }
+        }
+
+        function calculateStockPrice() {
+            const companySelect = document.getElementById('stock-company');
+            const quantityInput = document.getElementById('stock-quantity');
+            const priceInput = document.getElementById('stock-total-price');
+            
+            const selectedCompany = companySelect.value;
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (selectedCompany && quantity > 0) {
+                const company = companyData.find(c => c.name === selectedCompany);
+                if (company && company.pricePerUnit) {
+                    const totalPrice = quantity * company.pricePerUnit;
+                    priceInput.value = totalPrice.toFixed(2);
+                }
+            } else {
+                priceInput.value = '';
+            }
+        }
+
+        // Utility functions
+        function updateCompanySelects() {
+            const selects = ['company', 'stock-company'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                const currentValue = select.value;
+                
+                // Clear existing options except the first one
+                while (select.children.length > 1) {
+                    select.removeChild(select.lastChild);
+                }
+                
+                // Add company options
+                companyData.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = typeof company === 'string' ? company : company.name;
+                    option.textContent = typeof company === 'string' ? company : company.name;
+                    select.appendChild(option);
+                });
+                
+                // Restore selected value if it still exists
+                const companyNames = companyData.map(c => typeof c === 'string' ? c : c.name);
+                if (companyNames.includes(currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+            
+            // Add change event listener for stock company select
+            const stockCompanySelect = document.getElementById('stock-company');
+            if (stockCompanySelect) {
+                stockCompanySelect.addEventListener('change', calculateStockPrice);
+            }
+        }
+
+        function updateCompanyList() {
+            const tbody = document.getElementById('company-list');
+            tbody.innerHTML = '';
+            
+            companyData.forEach((company, index) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                
+                const companyName = typeof company === 'string' ? company : company.name;
+                const pricePerUnit = typeof company === 'string' ? 0 : (company.pricePerUnit || 0);
+                
+                row.innerHTML = `
+                    <td class="p-3">${companyName}</td>
+                    <td class="p-3">฿${pricePerUnit.toLocaleString()}</td>
+                    <td class="p-3">
+                        <div class="flex gap-2">
+                            <button onclick="editCompany(${index})" class="text-blue-500 hover:text-blue-700 transition-colors px-2 py-1">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="removeCompany(${index})" class="text-red-500 hover:text-red-700 transition-colors px-2 py-1">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function removeCompany(index) {
+            const companyName = companyData[index];
+            
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบ',
+                text: `คุณต้องการลบบริษัท "${companyName}" หรือไม่?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ลบ',
+                cancelButtonText: 'ยกเลิก'
+            });
+            
+            if (result.isConfirmed) {
+                try {
+                    Swal.fire({
+                        title: 'กำลังลบบริษัท...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    const deleteResult = await makeJSONPRequest('deleteCompany', { 
+                        name: companyName,
+                        index: index,
+                        spreadsheetId: SPREADSHEET_ID,
+                        sheetName: COMPANY_SHEET
+                    });
+                    
+                    if (deleteResult.success) {
+                        companyData.splice(index, 1);
+                        updateCompanySelects();
+                        updateCompanyList();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ลบบริษัทสำเร็จ!',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        throw new Error(deleteResult.error || 'Unknown error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting company:', error);
+                    
+                    // Delete from local data as backup
+                    companyData.splice(index, 1);
+                    updateCompanySelects();
+                    updateCompanyList();
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ลบในเครื่องสำเร็จ',
+                        text: 'การเปลี่ยนแปลงจะถูกส่งไป Google Sheets เมื่อเชื่อมต่อได้',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        }
+
+        async function editCompany(index) {
+            const oldCompany = companyData[index];
+            const oldName = typeof oldCompany === 'string' ? oldCompany : oldCompany.name;
+            const oldPrice = typeof oldCompany === 'string' ? 0 : (oldCompany.pricePerUnit || 0);
+            
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขข้อมูลบริษัท',
+                html: `
+                    <div class="text-left">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อบริษัท</label>
+                        <input id="edit-company-name" class="w-full p-3 border border-gray-300 rounded-lg mb-4" value="${oldName}">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ราคาต่อชิ้น (บาท)</label>
+                        <input id="edit-company-price" type="number" step="0.01" min="0" class="w-full p-3 border border-gray-300 rounded-lg" value="${oldPrice}">
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const newName = document.getElementById('edit-company-name').value.trim();
+                    const newPrice = parseFloat(document.getElementById('edit-company-price').value) || 0;
+                    
+                    if (!newName) {
+                        Swal.showValidationMessage('กรุณากรอกชื่อบริษัท');
+                        return false;
+                    }
+                    
+                    if (newPrice < 0) {
+                        Swal.showValidationMessage('ราคาต้องไม่ติดลบ');
+                        return false;
+                    }
+                    
+                    // Check for duplicate name (excluding current company)
+                    const existingCompany = companyData.find((company, idx) => {
+                        if (idx === index) return false;
+                        const companyName = typeof company === 'string' ? company : company.name;
+                        return companyName === newName;
+                    });
+                    
+                    if (existingCompany) {
+                        Swal.showValidationMessage('ชื่อบริษัทนี้มีอยู่แล้ว');
+                        return false;
+                    }
+                    
+                    return { name: newName, price: newPrice };
+                }
+            });
+            
+            if (formValues && (formValues.name !== oldName || formValues.price !== oldPrice)) {
+                try {
+                    Swal.fire({
+                        title: 'กำลังแก้ไขบริษัท...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    const result = await makeJSONPRequest('editCompany', { 
+                        index: index,
+                        newName: formValues.name,
+                        newPrice: formValues.price
+                    });
+                    
+                    if (result.success) {
+                        companyData[index] = {
+                            name: formValues.name,
+                            pricePerUnit: formValues.price
+                        };
+                        updateCompanySelects();
+                        updateCompanyList();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'แก้ไขบริษัทสำเร็จ!',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        throw new Error(result.error || 'Unknown error');
+                    }
+                } catch (error) {
+                    console.error('Error editing company:', error);
+                    
+                    // Edit local data as backup
+                    companyData[index] = {
+                        name: formValues.name,
+                        pricePerUnit: formValues.price
+                    };
+                    updateCompanySelects();
+                    updateCompanyList();
+                    
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'แก้ไขในเครื่องสำเร็จ',
+                        text: 'การเปลี่ยนแปลงจะถูกส่งไป Google Sheets เมื่อเชื่อมต่อได้',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        }
+
+        function formatDate(dateString) {
+            // Parse and format date to Thai format "12 มิถุนายน 2568"
+            const date = parseThaiDate(dateString);
+            if (!date || isNaN(date)) return dateString;
+            
+            return formatThaiDate(date);
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            
+            if (type === 'success') {
+                notification.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white border-4 border-green-500 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 fade-in';
+                notification.innerHTML = `
+                    <div class="text-center">
+                        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                            <i class="fas fa-check text-3xl text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">สำเร็จ!</h3>
+                        <p class="text-gray-600 mb-6">${message}</p>
+                        <button onclick="this.parentElement.parentElement.remove()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                            ตกลง
+                        </button>
+                    </div>
+                `;
+            } else {
+                notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm fade-in ${
+                    type === 'error' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+                }`;
+                notification.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span>${message}</span>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds (except for success notifications)
+            if (type !== 'success') {
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Settings management
+        function loadSettings() {
+            // Load notification settings
+            const savedNotificationSettings = localStorage.getItem('notificationSettings');
+            if (savedNotificationSettings) {
+                notificationSettings = { ...notificationSettings, ...JSON.parse(savedNotificationSettings) };
+            }
+            
+            // Load Google Sheets settings
+            const savedGoogleSheetsSettings = localStorage.getItem('googleSheetsSettings');
+            if (savedGoogleSheetsSettings) {
+                googleSheetsSettings = { ...googleSheetsSettings, ...JSON.parse(savedGoogleSheetsSettings) };
+            }
+            
+            // Update UI with loaded settings
+            updateSettingsUI();
+        }
+
+        function updateSettingsUI() {
+            document.getElementById('min-stock-threshold').value = notificationSettings.minStockThreshold;
+            document.getElementById('sound-notification').checked = notificationSettings.soundEnabled;
+            document.getElementById('visual-notification').checked = notificationSettings.visualEnabled;
+            document.getElementById('vibration-notification').checked = notificationSettings.vibrationEnabled;
+            document.getElementById('speech-rate').value = notificationSettings.speechRate;
+            document.getElementById('speech-volume').value = notificationSettings.speechVolume;
+            
+            document.getElementById('sheets-id').value = googleSheetsSettings.spreadsheetId;
+            document.getElementById('dispensing-sheet').value = googleSheetsSettings.dispensingSheet;
+            document.getElementById('stock-sheet').value = googleSheetsSettings.stockSheet;
+            document.getElementById('company-sheet').value = googleSheetsSettings.companySheet;
+        }
+
+        function saveNotificationSettings() {
+            notificationSettings = {
+                minStockThreshold: parseInt(document.getElementById('min-stock-threshold').value),
+                soundEnabled: document.getElementById('sound-notification').checked,
+                visualEnabled: document.getElementById('visual-notification').checked,
+                vibrationEnabled: document.getElementById('vibration-notification').checked,
+                speechRate: parseFloat(document.getElementById('speech-rate').value),
+                speechVolume: parseFloat(document.getElementById('speech-volume').value)
+            };
+            
+            localStorage.setItem('notificationSettings', JSON.stringify(notificationSettings));
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกสำเร็จ!',
+                text: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
+        function saveGoogleSheetsSettings() {
+            googleSheetsSettings = {
+                spreadsheetId: document.getElementById('sheets-id').value,
+                dispensingSheet: document.getElementById('dispensing-sheet').value,
+                stockSheet: document.getElementById('stock-sheet').value,
+                companySheet: document.getElementById('company-sheet').value
+            };
+            
+            localStorage.setItem('googleSheetsSettings', JSON.stringify(googleSheetsSettings));
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'บันทึกสำเร็จ!',
+                text: 'การตั้งค่า Google Sheets ถูกบันทึกแล้ว',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        }
+
+        function testNotification() {
+            // Create fake low stock items for testing
+            const testItems = [
+                { company: 'บริษัท A', remaining: 2 },
+                { company: 'บริษัท B', remaining: 1 }
+            ];
+            
+            showLowStockNotification(testItems);
+            
+            if (notificationSettings.soundEnabled) {
+                setTimeout(() => {
+                    startContinuousSpeech(testItems);
+                }, 500);
+            }
+        }
+
+        async function testConnection() {
+            if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_SCRIPT_URL_HERE') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ยังไม่ได้ตั้งค่า URL!',
+                    text: 'กรุณาใส่ URL ของ Google Apps Script ที่ Deploy แล้ว',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+            
+            try {
+                Swal.fire({
+                    title: 'กำลังทดสอบการเชื่อมต่อ...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const response = await makeJSONPRequest('ping');
+                
+                if (response && response.success) {
+                    updateConnectionStatus(true);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ!',
+                        text: 'สามารถเชื่อมต่อ Google Sheets ได้',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    throw new Error(response ? response.error : 'No response from server');
+                }
+            } catch (error) {
+                updateConnectionStatus(false, 'เชื่อมต่อไม่ได้');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เชื่อมต่อไม่สำเร็จ!',
+                    text: 'ไม่สามารถเชื่อมต่อ Google Sheets ได้: ' + error.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        }
+
+        // Summary statistics functions
+        function updateSummaryStatistics() {
+            const month = document.getElementById('report-month').value;
+            const year = document.getElementById('report-year').value;
+            
+            let filteredData = [...dispensingData];
+            
+            // If no month/year selected, show current month/year only
+            if (!month && !year) {
+                const currentDate = new Date();
+                const currentMonth = currentDate.getMonth() + 1;
+                const currentYear = currentDate.getFullYear();
+                
+                filteredData = dispensingData.filter(item => {
+                    const itemDate = parseThaiDate(item.date);
+                    if (!itemDate || isNaN(itemDate)) return false;
+                    
+                    const itemMonth = itemDate.getMonth() + 1;
+                    const itemYear = itemDate.getFullYear();
+                    
+                    return itemMonth === currentMonth && itemYear === currentYear;
+                });
+            } else if (month || year) {
+                filteredData = dispensingData.filter(item => {
+                    const itemDate = parseThaiDate(item.date);
+                    if (!itemDate || isNaN(itemDate)) return false;
+                    
+                    const itemMonth = itemDate.getMonth() + 1;
+                    const itemYear = itemDate.getFullYear();
+                    
+                    return (!month || itemMonth == month) && (!year || itemYear == year);
+                });
+            }
+            
+            // Total dispensing records (filtered)
+            const totalDispensing = filteredData.length;
+            document.getElementById('total-dispensing').textContent = totalDispensing.toLocaleString();
+            
+            // Total stock remaining (current stock)
+            const totalStock = stockData.reduce((sum, item) => sum + item.remaining, 0);
+            document.getElementById('total-stock').textContent = totalStock.toLocaleString();
+            
+            // Total value from dispensing (filtered)
+            const totalValue = filteredData.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('total-value').textContent = '฿' + totalValue.toLocaleString();
+            
+            // Calculate low stock count from company report data (aggregated totals)
+            const companyStock = {};
+            stockData.forEach(stock => {
+                if (!companyStock[stock.company]) {
+                    companyStock[stock.company] = 0;
+                }
+                companyStock[stock.company] += stock.remaining;
+            });
+            
+            // Count companies with low stock based on total remaining per company
+            const lowStockCount = Object.values(companyStock).filter(remaining => 
+                remaining <= notificationSettings.minStockThreshold && remaining > 0
+            ).length;
+            
+            document.getElementById('low-stock-count').textContent = lowStockCount.toLocaleString();
+            
+            // Update company statistics
+            updateCompanyStatistics(filteredData);
+        }
+        
+        function updateCompanyStatistics(filteredData) {
+            const container = document.getElementById('company-stats-cards');
+            container.innerHTML = '';
+            
+            // Calculate usage by company from filtered data
+            const companyUsage = {};
+            filteredData.forEach(item => {
+                if (!companyUsage[item.company]) {
+                    companyUsage[item.company] = {
+                        used: 0,
+                        totalValue: 0
+                    };
+                }
+                companyUsage[item.company].used += item.quantity;
+                companyUsage[item.company].totalValue += item.price;
+            });
+            
+            // Calculate remaining stock by company
+            const companyStock = {};
+            stockData.forEach(stock => {
+                if (!companyStock[stock.company]) {
+                    companyStock[stock.company] = {
+                        remaining: 0,
+                        remainingValue: 0
+                    };
+                }
+                companyStock[stock.company].remaining += stock.remaining;
+                
+                // Calculate remaining value
+                const company = companyData.find(c => (typeof c === 'string' ? c : c.name) === stock.company);
+                const pricePerUnit = company && typeof company === 'object' ? company.pricePerUnit : 0;
+                companyStock[stock.company].remainingValue += stock.remaining * pricePerUnit;
+            });
+            
+            // Get all unique companies
+            const allCompanies = new Set([
+                ...Object.keys(companyUsage),
+                ...Object.keys(companyStock)
+            ]);
+            
+            const colors = [
+                'from-blue-400 to-blue-500',
+                'from-green-400 to-green-500',
+                'from-purple-400 to-purple-500',
+                'from-pink-400 to-pink-500',
+                'from-indigo-400 to-indigo-500',
+                'from-yellow-400 to-yellow-500',
+                'from-red-400 to-red-500',
+                'from-teal-400 to-teal-500'
+            ];
+            
+            let colorIndex = 0;
+            
+            allCompanies.forEach(companyName => {
+                const usage = companyUsage[companyName] || { used: 0, totalValue: 0 };
+                const stock = companyStock[companyName] || { remaining: 0, remainingValue: 0 };
+                const color = colors[colorIndex % colors.length];
+                colorIndex++;
+                
+                const card = document.createElement('div');
+                card.className = `bg-gradient-to-br ${color} text-white rounded-xl p-4 shadow-lg transform hover:scale-105 transition-all duration-300`;
+                card.innerHTML = `
+                    <div class="mb-3">
+                        <h4 class="font-bold text-lg truncate">${companyName}</h4>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="opacity-90">เบิกแล้ว:</span>
+                            <span class="font-semibold">${usage.used.toLocaleString()} ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">มูลค่าเบิก:</span>
+                            <span class="font-semibold">฿${usage.totalValue.toLocaleString()}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">คงเหลือ:</span>
+                            <span class="font-semibold">${stock.remaining.toLocaleString()} ชิ้น</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="opacity-90">มูลค่าคงเหลือ:</span>
+                            <span class="font-semibold">฿${stock.remainingValue.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        }
+
+        function updateSummaryCharts() {
+            updateMonthlyChart();
+            updateCompanyChart();
+        }
+
+        function updateMonthlyChart() {
+            const ctx = document.getElementById('monthly-chart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.monthlyChart) {
+                window.monthlyChart.destroy();
+            }
+            
+            // Group dispensing data by month
+            const monthlyData = {};
+            const monthNames = [
+                'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+                'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+            ];
+            
+            // Initialize all months with 0
+            monthNames.forEach((month, index) => {
+                monthlyData[index + 1] = 0;
+            });
+            
+            dispensingData.forEach(item => {
+                const date = parseThaiDate(item.date);
+                if (date && !isNaN(date)) {
+                    const month = date.getMonth() + 1;
+                    monthlyData[month] = (monthlyData[month] || 0) + 1;
+                }
+            });
+            
+            const labels = monthNames;
+            const data = Object.values(monthlyData);
+            
+            window.monthlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวนการเบิก',
+                        data: data,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCompanyChart() {
+            const ctx = document.getElementById('company-chart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (window.companyChart) {
+                window.companyChart.destroy();
+            }
+            
+            // Group dispensing data by company
+            const companyData = {};
+            dispensingData.forEach(item => {
+                companyData[item.company] = (companyData[item.company] || 0) + 1;
+            });
+            
+            const labels = Object.keys(companyData);
+            const data = Object.values(companyData);
+            
+            // Generate colors for each company
+            const colors = [
+                '#ef4444', '#f97316', '#eab308', '#22c55e', 
+                '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
+            ];
+            
+            window.companyChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+
+        function updateRecentActivities() {
+            const activities = document.getElementById('recent-activities');
+            activities.innerHTML = '';
+            
+            // Get recent dispensing records (last 5)
+            const recentRecords = dispensingData.slice(-5).reverse();
+            
+            if (recentRecords.length === 0) {
+                activities.innerHTML = '<p class="text-gray-500 text-center">ยังไม่มีกิจกรรมล่าสุด</p>';
+                return;
+            }
+            
+            recentRecords.forEach(record => {
+                const activity = document.createElement('div');
+                activity.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                activity.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 text-blue-600 rounded-full p-2 mr-3">
+                            <i class="fas fa-clipboard-list text-sm"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-sm">${record.fullname}</p>
+                            <p class="text-xs text-gray-600">เบิก ${record.company} - ฿${record.price.toLocaleString()}</p>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        ${formatDate(record.date)}
+                    </div>
+                `;
+                activities.appendChild(activity);
+            });
+        }
+
+        // Initialize empty data
+        function initializeEmptyData() {
+            dispensingData = [];
+            stockData = [];
+            companyData = [];
+            
+            updateCompanySelects();
+            updateCompanyList();
+            updateStockTable();
+            populateReportOptions();
+            generateReport();
+            updateSummaryStatistics();
+            updateSummaryCharts();
+        }
+
+        // Enhanced QR/Barcode scanner with smartphone support
+        let codeReader = null;
+        let currentScanFieldId = null;
+        let currentStream = null;
+        let scanningActive = false;
+        let scanningInterval = null;
+
+        async function scanBarcode(fieldId) {
+            currentScanFieldId = fieldId;
+            
+            // Check if browser supports camera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่รองรับกล้อง',
+                    text: 'เบราว์เซอร์นี้ไม่รองรับการใช้กล้อง กรุณาใช้เบราว์เซอร์ที่ทันสมัยกว่า',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            try {
+                // Initialize ZXing code reader
+                if (!codeReader) {
+                    codeReader = new ZXing.BrowserMultiFormatReader();
+                }
+
+                // Create modal for camera with mobile-optimized design
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-2xl p-4 m-2 w-full max-w-lg max-h-screen overflow-y-auto">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-2xl font-bold flex items-center">
+                                <i class="fas fa-qrcode mr-3 text-blue-500"></i>
+                                สแกน QR Code
+                            </h3>
+                            <button onclick="closeBarcodeScanner()" class="text-gray-500 hover:text-gray-700 text-2xl p-2">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-4 relative">
+                            <video id="barcode-video" class="w-full h-80 bg-black rounded-lg object-cover" playsinline autoplay muted></video>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="border-4 border-red-500 w-48 h-32 rounded-lg animate-pulse">
+                                    <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 text-white text-base bg-red-500 px-3 py-2 rounded whitespace-nowrap font-bold">
+                                        วางโค้ดตรงนี้
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="absolute top-3 right-3 flex gap-2">
+                                <button id="switch-camera" onclick="switchCamera()" class="bg-black bg-opacity-70 text-white p-3 rounded-full hover:bg-opacity-90 transition-all text-lg">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                <button id="torch-btn" onclick="toggleTorch()" class="bg-black bg-opacity-70 text-white p-3 rounded-full hover:bg-opacity-90 transition-all text-lg">
+                                    <i class="fas fa-lightbulb"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <input type="text" id="manual-input" placeholder="หรือกรอกหมายเลขด้วยตนเอง" class="w-full p-4 text-lg border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" onkeypress="handleManualInputKeypress(event)">
+                        </div>
+                        
+                        <div id="scan-status" class="text-center text-lg text-gray-600 min-h-[50px] flex items-center justify-center">
+                            <div class="flex items-center">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-3"></div>
+                                กำลังเปิดกล้อง...
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                window.currentModal = modal;
+
+                // Request camera permission and initialize immediately
+                await requestCameraPermissionAndStart();
+
+            } catch (error) {
+                console.error('Scanner initialization error:', error);
+                handleCameraError(error);
+            }
+        }
+
+        async function requestCameraPermissionAndStart() {
+            const statusElement = document.querySelector('#scan-status');
+            const videoElement = document.querySelector('#barcode-video');
+            
+            try {
+                statusElement.innerHTML = `
+                    <div class="flex items-center text-blue-600">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-3"></div>
+                        กำลังเปิดกล้อง...
+                    </div>
+                `;
+
+                // Request camera permission with mobile-optimized constraints
+                const constraints = {
+                    video: {
+                        facingMode: { ideal: 'environment' }, // Prefer back camera
+                        width: { ideal: 1920, min: 640 },
+                        height: { ideal: 1080, min: 480 },
+                        aspectRatio: { ideal: 16/9 }
+                    },
+                    audio: false
+                };
+
+                // Get camera permission immediately
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                statusElement.innerHTML = `
+                    <div class="flex items-center text-green-600">
+                        <div class="animate-pulse w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                        กำลังเปิดกล้อง...
+                    </div>
+                `;
+
+                // Set up video element
+                videoElement.srcObject = currentStream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve, reject) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play()
+                            .then(resolve)
+                            .catch(reject);
+                    };
+                    videoElement.onerror = reject;
+                    
+                    // Timeout after 5 seconds
+                    setTimeout(() => reject(new Error('Video load timeout')), 5000);
+                });
+
+                statusElement.innerHTML = `
+                    <div class="flex items-center text-green-600 font-bold">
+                        <div class="animate-pulse w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                        พร้อมสแกน! วางโค้ดเข้าใกล้กล้อง
+                    </div>
+                `;
+
+                // Start scanning immediately
+                startAutomaticScanning();
+
+                // Get available cameras for switching
+                await getAvailableCameras();
+
+            } catch (error) {
+                console.error('Camera permission/start error:', error);
+                handleCameraError(error);
+            }
+        }
+
+        function handleCameraError(error) {
+            const statusElement = document.querySelector('#scan-status');
+            const manualInput = document.querySelector('#manual-input');
+            
+            let errorMessage = 'ไม่สามารถเข้าถึงกล้องได้';
+            
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMessage = 'ไม่ได้รับอนุญาตใช้กล้อง';
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = 'ไม่พบกล้องในอุปกรณ์';
+            } else if (error.name === 'NotSupportedError') {
+                errorMessage = 'เบราว์เซอร์ไม่รองรับการใช้กล้อง';
+            } else if (error.name === 'OverconstrainedError') {
+                errorMessage = 'กล้องไม่รองรับการตั้งค่าที่ต้องการ';
+            }
+            
+            statusElement.innerHTML = `
+                <div class="text-red-600 text-center">
+                    <div class="flex items-center justify-center mb-3 text-lg">
+                        <i class="fas fa-exclamation-triangle mr-3 text-xl"></i>
+                        ${errorMessage}
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        กรุณากรอกหมายเลขด้วยตนเอง
+                    </div>
+                </div>
+            `;
+            
+            // Focus on manual input
+            if (manualInput) {
+                manualInput.focus();
+                manualInput.placeholder = 'กรุณากรอกหมายเลขที่นี่';
+                manualInput.classList.add('border-red-300', 'focus:ring-red-500');
+            }
+            
+            // Show detailed error in console for debugging
+            console.error('Detailed camera error:', {
+                name: error.name,
+                message: error.message,
+                constraint: error.constraint
+            });
+        }
+
+        let currentCameraIndex = 0;
+        let availableCameras = [];
+
+        async function getAvailableCameras() {
+            try {
+                // Get available video devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                availableCameras = devices.filter(device => device.kind === 'videoinput');
+                
+                console.log('Available cameras:', availableCameras.map(cam => ({
+                    id: cam.deviceId,
+                    label: cam.label || 'Unknown Camera'
+                })));
+                
+                // Try to find back camera first (better for scanning)
+                let preferredCameraIndex = 0;
+                const backCameraIndex = availableCameras.findIndex(device => {
+                    const label = device.label.toLowerCase();
+                    return label.includes('back') || 
+                           label.includes('rear') ||
+                           label.includes('environment') ||
+                           label.includes('facing back') ||
+                           label.includes('camera2 0') || // Android back camera pattern
+                           label.includes('0, facing back');
+                });
+                
+                if (backCameraIndex !== -1) {
+                    preferredCameraIndex = backCameraIndex;
+                    console.log('Found back camera at index:', backCameraIndex);
+                }
+                
+                currentCameraIndex = preferredCameraIndex;
+                
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                availableCameras = [];
+            }
+        }
+
+        // Enhanced automatic scanning function for mobile
+        function startAutomaticScanning() {
+            if (scanningActive) return;
+            
+            scanningActive = true;
+            const videoElement = document.querySelector('#barcode-video');
+            const statusElement = document.querySelector('#scan-status');
+            const manualInput = document.querySelector('#manual-input');
+            
+            if (!videoElement || !codeReader) {
+                console.error('Video element or code reader not available');
+                return;
+            }
+            
+            statusElement.innerHTML = `
+                <div class="flex items-center justify-center text-green-600 font-bold">
+                    <div class="animate-pulse w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                    กำลังสแกนอัตโนมัติ... วางโค้ดเข้าใกล้กล้อง
+                </div>
+            `;
+            
+            // Use ZXing's continuous decode method with mobile optimization
+            try {
+                codeReader.decodeFromVideoDevice(undefined, videoElement, (result, error) => {
+                    if (!scanningActive) return;
+                    
+                    if (result) {
+                        // Found a code!
+                        const scannedText = result.getText();
+                        manualInput.value = scannedText;
+                        
+                        statusElement.innerHTML = `
+                            <div class="text-green-600 font-bold text-lg">
+                                <i class="fas fa-check-circle mr-3 text-xl"></i>
+                                พบโค้ด: ${scannedText.substring(0, 15)}${scannedText.length > 15 ? '...' : ''}
+                            </div>
+                        `;
+                        
+                        // Play success sound (mobile-friendly)
+                        try {
+                            // Create a simple beep sound
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+                            
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+                            
+                            oscillator.frequency.value = 1000;
+                            oscillator.type = 'sine';
+                            
+                            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                            
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.5);
+                        } catch (e) {
+                            console.log('Audio not supported');
+                        }
+                        
+                        // Vibrate if supported (mobile)
+                        if (navigator.vibrate) {
+                            navigator.vibrate([300, 100, 300, 100, 300]);
+                        }
+                        
+                        // Auto-close and fill data immediately
+                        setTimeout(() => {
+                            if (scanningActive) {
+                                // Fill the target field directly
+                                if (currentScanFieldId) {
+                                    const targetField = document.getElementById(currentScanFieldId);
+                                    if (targetField) {
+                                        targetField.value = scannedText;
+                                        
+                                        // Trigger change event for any listeners
+                                        targetField.dispatchEvent(new Event('change', { bubbles: true }));
+                                        targetField.dispatchEvent(new Event('input', { bubbles: true }));
+                                    }
+                                }
+                                
+                                // Close scanner immediately
+                                closeBarcodeScanner();
+                            }
+                        }, 800);
+                        
+                        // Stop scanning
+                        scanningActive = false;
+                        
+                    } else if (error && !(error instanceof ZXing.NotFoundException)) {
+                        // Only log non-"not found" errors
+                        console.error('Scanning error:', error);
+                    }
+                });
+            } catch (error) {
+                console.error('Failed to start scanning:', error);
+                statusElement.innerHTML = `
+                    <div class="text-red-600 text-lg">
+                        <i class="fas fa-exclamation-triangle mr-3 text-xl"></i>
+                        ไม่สามารถเริ่มสแกนได้
+                    </div>
+                `;
+            }
+        }
+
+        async function switchCamera() {
+            if (availableCameras.length <= 1) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'มีกล้องเพียงตัวเดียว',
+                    text: 'อุปกรณ์นี้มีกล้องเพียงตัวเดียว',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            // Stop current scanning
+            scanningActive = false;
+            if (codeReader) {
+                codeReader.reset();
+            }
+            
+            // Switch to next camera
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            
+            // Restart camera with new device
+            await restartCameraWithDevice(availableCameras[currentCameraIndex].deviceId);
+            
+            // Restart scanning
+            setTimeout(() => {
+                startAutomaticScanning();
+            }, 1000);
+        }
+
+        async function restartCameraWithDevice(deviceId) {
+            const videoElement = document.querySelector('#barcode-video');
+            const statusElement = document.querySelector('#scan-status');
+            
+            try {
+                // Stop current stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                statusElement.innerHTML = `
+                    <div class="flex items-center justify-center text-blue-600">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                        กำลังสลับกล้อง...
+                    </div>
+                `;
+
+                // Request new camera with specific device ID
+                const constraints = {
+                    video: {
+                        deviceId: { exact: deviceId },
+                        width: { ideal: 1280, min: 320 },
+                        height: { ideal: 720, min: 240 },
+                        aspectRatio: { ideal: 16/9 }
+                    },
+                    audio: false
+                };
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = currentStream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve, reject) => {
+                    videoElement.onloadedmetadata = () => {
+                        videoElement.play()
+                            .then(resolve)
+                            .catch(reject);
+                    };
+                    videoElement.onerror = reject;
+                    
+                    setTimeout(() => reject(new Error('Video load timeout')), 5000);
+                });
+
+                // Update status with camera info
+                const camera = availableCameras[currentCameraIndex];
+                const cameraLabel = camera.label || `กล้อง ${currentCameraIndex + 1}`;
+                statusElement.innerHTML = `
+                    <div class="text-green-600">
+                        <i class="fas fa-camera mr-2"></i>
+                        สลับเรียบร้อย (${cameraLabel})
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Camera restart error:', error);
+                handleCameraError(error);
+            }
+        }
+
+        async function toggleTorch() {
+            if (!currentStream) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่มีกล้องทำงาน',
+                    text: 'กรุณาเปิดกล้องก่อนใช้ไฟฉาย',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            const track = currentStream.getVideoTracks()[0];
+            if (!track) return;
+            
+            try {
+                const capabilities = track.getCapabilities();
+                
+                if (capabilities.torch) {
+                    const settings = track.getSettings();
+                    const newTorchState = !settings.torch;
+                    
+                    await track.applyConstraints({
+                        advanced: [{ torch: newTorchState }]
+                    });
+                    
+                    const torchBtn = document.querySelector('#torch-btn');
+                    if (torchBtn) {
+                        if (newTorchState) {
+                            torchBtn.classList.remove('bg-black');
+                            torchBtn.classList.add('bg-yellow-500');
+                            torchBtn.innerHTML = '<i class="fas fa-lightbulb text-yellow-200"></i>';
+                        } else {
+                            torchBtn.classList.remove('bg-yellow-500');
+                            torchBtn.classList.add('bg-black');
+                            torchBtn.innerHTML = '<i class="fas fa-lightbulb"></i>';
+                        }
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: newTorchState ? 'เปิดไฟฉาย' : 'ปิดไฟฉาย',
+                        timer: 1000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                    
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ไม่รองรับไฟฉาย',
+                        text: 'กล้องนี้ไม่มีไฟฉาย',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            } catch (error) {
+                console.error('Torch toggle error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถควบคุมไฟฉายได้',
+                    text: 'เกิดข้อผิดพลาดในการเปิด/ปิดไฟฉาย',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        function stopScanning() {
+            scanningActive = false;
+            if (codeReader) {
+                try {
+                    codeReader.reset();
+                } catch (error) {
+                    console.error('Error stopping scanner:', error);
+                }
+            }
+            const statusElement = document.querySelector('#scan-status');
+            if (statusElement) {
+                statusElement.innerHTML = `
+                    <div class="text-gray-600">
+                        <i class="fas fa-pause mr-2"></i>
+                        หยุดการสแกน - พร้อมสแกนใหม่
+                    </div>
+                `;
+            }
+        }
+
+        function closeBarcodeScanner() {
+            // Stop scanning
+            scanningActive = false;
+            
+            // Stop camera stream
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => {
+                    try {
+                        track.stop();
+                    } catch (error) {
+                        console.error('Error stopping track:', error);
+                    }
+                });
+                currentStream = null;
+            }
+            
+            // Reset code reader
+            if (codeReader) {
+                try {
+                    codeReader.reset();
+                } catch (error) {
+                    console.error('Error resetting code reader:', error);
+                }
+            }
+            
+            // Clear scanning interval if exists
+            if (scanningInterval) {
+                clearInterval(scanningInterval);
+                scanningInterval = null;
+            }
+            
+            // Remove modal
+            if (window.currentModal) {
+                try {
+                    window.currentModal.remove();
+                } catch (error) {
+                    console.error('Error removing modal:', error);
+                }
+                window.currentModal = null;
+            }
+            
+            // Reset variables
+            currentScanFieldId = null;
+            currentCameraIndex = 0;
+            availableCameras = [];
+        }
+
+        function handleManualInputKeypress(event) {
+            if (event.key === 'Enter') {
+                const manualInput = event.target;
+                const value = manualInput.value.trim();
+                
+                if (value && currentScanFieldId) {
+                    const targetField = document.getElementById(currentScanFieldId);
+                    if (targetField) {
+                        targetField.value = value;
+                        
+                        // Trigger change event for any listeners
+                        targetField.dispatchEvent(new Event('change', { bubbles: true }));
+                        targetField.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    
+                    // Close scanner immediately
+                    closeBarcodeScanner();
+                }
+            }
+        }
+
+        function useBarcodeResult() {
+            const manualInput = document.querySelector('#manual-input');
+            const value = manualInput ? manualInput.value.trim() : '';
+            
+            if (value && currentScanFieldId) {
+                const targetField = document.getElementById(currentScanFieldId);
+                if (targetField) {
+                    targetField.value = value;
+                    
+                    // Trigger change event for any listeners
+                    targetField.dispatchEvent(new Event('change', { bubbles: true }));
+                    targetField.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                
+                // Show success notification
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สแกนสำเร็จ!',
+                    text: `ได้ข้อมูล: ${value.length > 30 ? value.substring(0, 30) + '...' : value}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+                
+                closeBarcodeScanner();
+                
+            } else if (!value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่มีข้อมูล',
+                    text: 'กรุณาสแกนโค้ดหรือกรอกข้อมูลก่อน',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Focus back to manual input
+                if (manualInput) {
+                    manualInput.focus();
+                }
+            } else {
+                closeBarcodeScanner();
+            }
+        }
+
+
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'965c378787b175d8',t:'MTc1MzYyMDE0OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
